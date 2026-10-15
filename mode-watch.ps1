@@ -27,9 +27,15 @@ Remove-Item $stopFlag -Force -ErrorAction SilentlyContinue
 try {
     while ($true) {
         if (Test-Path $stopFlag) { Remove-Item $stopFlag -Force -ErrorAction SilentlyContinue; break }
-        foreach ($p in @(Get-Process echovr -ErrorAction SilentlyContinue)) {
+        # Inject the PLAYER mod only into a VR client - never a headless dedicated
+        # server (which is launched with -headless/-server). Putting the client's
+        # player hook into the host server pollutes it; the host uses its own
+        # server DLL via the desktop launcher instead.
+        foreach ($cp in @(Get-CimInstance Win32_Process -Filter "Name='echovr.exe'" -ErrorAction SilentlyContinue)) {
+            $cmd = [string]$cp.CommandLine
+            if ($cmd -match '(?i)(^|\s)-(headless|server)(\s|$)') { continue }
             $has = $false
-            try { $has = [bool]($p.Modules | Where-Object { $_.ModuleName -eq $Dll }) } catch {}
+            try { $pp = Get-Process -Id $cp.ProcessId -ErrorAction SilentlyContinue; if ($pp) { $has = [bool]($pp.Modules | Where-Object { $_.ModuleName -eq $Dll }) } } catch {}
             if (-not $has) { & $inject $dllPath echovr.exe | Out-Null }
         }
         Start-Sleep -Seconds 3

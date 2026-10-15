@@ -90,13 +90,19 @@ function Write-ServerConfig($exe, $hostPort) {
     $bak = Backup-Path $cfg
     if ((Test-Path $cfg) -and -not (Test-Path $bak)) { Copy-Item $cfg $bak -Force }
     $ws = "ws://$hostPort/ws?format=evr&token=$Token"
+    # Optional personal credentials (my-login.txt next to this tool), e.g.
+    # "discordid=123&password=abc". Present only in a personal build; the public
+    # download has no such file, so players log in by headset/link-code instead.
+    $login = $ws
+    $creds = Read-Line (Join-Path $Root 'my-login.txt')
+    if ($creds -ne '') { $login = "$ws&$creds" }
     $json = @"
 {
     "apiservice_host": "http://$hostPort",
     "configservice_host": "$ws",
-    "loginservice_host": "$ws",
+    "loginservice_host": "$login",
     "matchingservice_host": "$ws",
-    "serverdb_host": "$ws",
+    "serverdb_host": "$login",
     "transactionservice_host": "$ws",
     "publisher_lock": "echovrce"
 }

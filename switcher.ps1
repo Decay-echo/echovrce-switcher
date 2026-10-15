@@ -45,11 +45,14 @@ function Save-Addr($a) { Set-Content -Path $MyAddrFile -Value $a -NoNewline -Enc
 function Find-EchoExe {
     $cands = @()
     if (Test-Path $PathMemo) { $cands += (Get-Content $PathMemo -Raw).Trim() }
-    $cands += @(
-        'C:\echo\EchoBinarys\bin\win10\echovr.exe',
-        (Join-Path $env:ProgramFiles       'Oculus\Software\Software\ready-at-dawn-echo-arena\bin\win10\echovr.exe'),
-        (Join-Path ${env:ProgramFiles(x86)} 'Oculus\Software\Software\ready-at-dawn-echo-arena\bin\win10\echovr.exe')
-    )
+    $sub = 'Software\Software\ready-at-dawn-echo-arena\bin\win10\echovr.exe'
+    $cands += @('C:\echo\EchoBinarys\bin\win10\echovr.exe')
+    foreach ($pf in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+        if ($pf) {
+            $cands += (Join-Path $pf "Meta Horizon\$sub")   # current Meta launcher
+            $cands += (Join-Path $pf "Oculus\$sub")          # older Oculus launcher
+        }
+    }
     foreach ($c in $cands) { if ($c -and (Test-Path $c)) { return $c } }
     return $null
 }

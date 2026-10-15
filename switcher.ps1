@@ -15,6 +15,9 @@ $MyAddrFile = Join-Path $Root 'my-server.txt'
 $PathMemo   = Join-Path $Root 'echo-exe.txt'
 $Token      = 'defaultkey'
 $BackupName = 'config.original-backup.json'
+# PERSONAL BUILDS ONLY: login credentials baked in here so there is no separate
+# file to lose. Public builds leave this empty. Format: "discordid=..&password=..".
+$BakedCreds = ''
 
 function Read-Line($path) {
     if (-not (Test-Path $path)) { return '' }
@@ -93,8 +96,11 @@ function Write-ServerConfig($exe, $hostPort) {
     # Optional personal credentials (my-login.txt next to this tool), e.g.
     # "discordid=123&password=abc". Present only in a personal build; the public
     # download has no such file, so players log in by headset/link-code instead.
+    # Credentials go on the LOGIN service only. A player client does not host, so
+    # the serverdb/other services must stay credential-free (matching the working
+    # no-creds config); putting creds there made the client fail "service unavailable".
     $login = $ws
-    $creds = Read-Line (Join-Path $Root 'my-login.txt')
+    $creds = if ($BakedCreds -ne '') { $BakedCreds } else { Read-Line (Join-Path $Root 'my-login.txt') }
     if ($creds -ne '') { $login = "$ws&$creds" }
     $json = @"
 {
@@ -102,7 +108,7 @@ function Write-ServerConfig($exe, $hostPort) {
     "configservice_host": "$ws",
     "loginservice_host": "$login",
     "matchingservice_host": "$ws",
-    "serverdb_host": "$login",
+    "serverdb_host": "$ws",
     "transactionservice_host": "$ws",
     "publisher_lock": "echovrce"
 }

@@ -1,6 +1,8 @@
 EchoVRCE-Switcher.zip
 my-server.txt
 my-login.txt
+my-mode.txt
 echo-exe.txt
 config.original-backup.json
-
+mode-watch.pid
+mode-watch.stop

@@ -1,0 +1,6 @@
+# This tool does NOT contain a server address, on purpose.
+# When you run Switch.bat, paste the address the host gave you (in their
+# Discord) into the box, and it's remembered on your PC only.
+#
+# (Host distributing to trusted people only: you may put one address line
+#  below and it'll prefill the box. Leave it blank to keep the tool address-free.)

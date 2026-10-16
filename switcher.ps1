@@ -28,6 +28,24 @@ $BakedCreds = ''
 $Modes = [ordered]@{
     'Normal (stock physics)' = ''
     'Gravity'                = 'echo_gravity_client.dll'
+    'Super Speed'            = 'echo_speed_client.dll'
+    # Experimental: you are 3x smaller in your own
+    # headset (step 1 - view only; your body, hitboxes and how others see you
+    # come later).
+    'Tiny (experimental)'    = 'echo_tiny_client.dll'
+    # Experimental: faster throws, longer stuns
+    # from your punches (picking players up comes later).
+    'Strength (experimental)' = 'echo_strength_client.dll'
+    # Experimental: hold X / A for 5x arms
+    # (2.5x each with both); grab far, let go of the button to reel in.
+    'Stretch (experimental)'  = 'echo_stretch_client.dll'
+    # Experimental: A = invisible 5 s, X = blink
+    # where you look; 10 s cooldowns. Both 1v1 players need Blink for the
+    # invisibility to hide you.
+    'Blink (experimental)'    = 'echo_blink_client.dll'
+    # Experimental: hold X / A to web, swing
+    # around the anchor keeping your speed, grip to reel in.
+    'Spider-Man (experimental)' = 'echo_web_client.dll'
 }
 
 function Read-Line($path) {
@@ -99,15 +117,24 @@ function Restore-Original($exe) {
     Copy-Item $bak $cfg -Force; return $true
 }
 function Stop-ModeWatcher {
-    # Stop it auto-starting at logon, then stop the running one. mode-watch.ps1
-    # keeps mode-watch.pid pointed at whichever instance is live (even the
-    # logon-started one), and also exits when it sees the stop flag.
+    # Stop it auto-starting at logon, then stop EVERY running watcher, matched
+    # by command line and not only by our PID file. A watcher started from an
+    # older copy of this folder (at logon, before the folder was replaced) is
+    # not in our PID file; left running it keeps the single-instance mutex, so
+    # the new mode's watcher exits at once and the OLD mod keeps being injected
+    # (seen switching Gravity -> Speed Test). Wait for each to exit so the mutex
+    # is free before Start-ModeWatcher launches the next one.
     Remove-Item $StartupCmd -Force -ErrorAction SilentlyContinue
     Set-Content -Path $StopFlag -Value 'stop' -NoNewline -Encoding ascii
-    if (Test-Path $WatchPid) {
-        try { $wp = [int](Get-Content $WatchPid -Raw); Stop-Process -Id $wp -Force -ErrorAction SilentlyContinue } catch {}
-        Remove-Item $WatchPid -Force -ErrorAction SilentlyContinue
+    $ids = @()
+    if (Test-Path $WatchPid) { try { $ids += [int](Get-Content $WatchPid -Raw) } catch {} }
+    $ids += @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -like '*mode-watch.ps1*' } | ForEach-Object { [int]$_.ProcessId })
+    foreach ($id in ($ids | Select-Object -Unique)) {
+        Stop-Process -Id $id -Force -ErrorAction SilentlyContinue
+        Wait-Process -Id $id -Timeout 5 -ErrorAction SilentlyContinue
     }
+    Remove-Item $WatchPid -Force -ErrorAction SilentlyContinue
 }
 function Start-ModeWatcher($dll) {
     Stop-ModeWatcher
